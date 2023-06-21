@@ -5,7 +5,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/fredele20/rssagg/core"
+	"github.com/fredele20/rssagg/handlers"
 	"github.com/fredele20/rssagg/internal/database"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
@@ -16,6 +19,10 @@ import (
 type apiConfig struct {
 	DB *database.Queries
 }
+
+// type coreConfig struct {
+// 	c *core.ApiConfig
+// }
 
 func main() {
 
@@ -36,9 +43,14 @@ func main() {
 		log.Fatal("Can not connect to database:", err)
 	}
 
+	db := database.New(conn)
 	apiCfg := &apiConfig{
-		DB: database.New(conn),
+		DB: db,
 	}
+
+	handlersService := handlers.NewCore((*core.ApiConfig)(apiCfg))
+
+	go startScraping(db, 10, time.Minute)
 
 	router := chi.NewRouter()
 
@@ -53,13 +65,25 @@ func main() {
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
 
-	v1Router := chi.NewRouter()
+	// routes := *chi.NewMux()
 
-	v1Router.Get("/healthz", handlerReadiness)
-	v1Router.Get("/err", handlerErr)
-	v1Router.Post("/users", apiCfg.handlerCreateUser)
+	handlers.RegisterRoutes(router, *handlersService)
 
-	router.Mount("/v1", v1Router)
+	// v1Router.Get("/healthz", handlerReadiness)
+	// v1Router.Get("/err", handlerErr)
+	// v1Router.Post("/users", apiCfg.handlerCreateUser)
+	// v1Router.Get("/users", apiCfg.middlewareAuth(apiCfg.handlerGetUser))
+
+	// v1Router.Post("/feeds", apiCfg.middlewareAuth(apiCfg.handlerCreateFeed))
+	// v1Router.Get("/feeds", apiCfg.handlerGetFeeds)
+
+	// v1Router.Get("/posts", apiCfg.middlewareAuth(apiCfg.handlerGetPostsForUser))
+
+	// v1Router.Post("/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerCreateFeedFollow))
+	// v1Router.Get("/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerGetFeedFollows))
+	// v1Router.Delete("/feed_follows/{feedFollowID}", apiCfg.middlewareAuth(apiCfg.handlerDeleteFeedFollow))
+
+	// router.Mount("/v1", v1Router)
 
 	srv := &http.Server{
 		Handler: router,
