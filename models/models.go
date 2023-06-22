@@ -116,3 +116,8 @@ func DatabasePostsToPosts(dbPosts []database.Post) []Post {
 
 	return posts
 }
+
+type UserPosts struct {
+	UserID uuid.UUID `json:"user_id"`
+	Limit  int32     `json:"limit"`
+}

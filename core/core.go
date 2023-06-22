@@ -48,3 +48,18 @@ func (a *ApiConfig) GetUser(context context.Context, apiKey string) (*models.Use
 	dbUser := models.DatabaseUserToUser(user)
 	return &dbUser, nil
 }
+
+func (a *ApiConfig) GetUserPosts(context context.Context, userId uuid.UUID, limit int32) (*[]models.Post, error) {
+	posts, err := a.DB.GetPostsForUser(context, database.GetPostsForUserParams{
+		UserID: userId,
+		Limit: limit,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	dbPost := models.DatabasePostsToPosts(posts)
+
+	return &dbPost, nil
+}

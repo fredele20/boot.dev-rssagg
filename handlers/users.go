@@ -22,9 +22,6 @@ func NewCore(c *core.ApiConfig) *Core {
 }
 
 func (c *Core) CreateUser(w http.ResponseWriter, r *http.Request) {
-	type parameters struct {
-		Name string `json:"name"`
-	}
 
 	decoder := json.NewDecoder(r.Body)
 
@@ -50,7 +47,7 @@ func (c *Core) GetUser(w http.ResponseWriter, r *http.Request) {
 		responseWithError(w, 403, fmt.Sprintf("Auth error: %v", err))
 		return
 	}
-	
+
 	fmt.Println(apiKey)
 	user, err := c.core.GetUser(r.Context(), apiKey)
 	if err != nil {
@@ -65,16 +62,28 @@ func (apiCfg *ApiConfig) GetUser(w http.ResponseWriter, r *http.Request, user da
 	respondWithJSON(w, 200, models.DatabaseUserToUser(user))
 }
 
-func (apiCfg *ApiConfig) GetPostsForUser(w http.ResponseWriter, r *http.Request, user database.User) {
-	posts, err := apiCfg.DB.GetPostsForUser(r.Context(), database.GetPostsForUserParams{
-		UserID: user.ID,
-		Limit:  10,
-	})
+func (c *Core) GetPostsForUser(w http.ResponseWriter, r *http.Request) {
+	var payload models.UserPosts
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&payload)
+	if err != nil {
+		responseWithError(w, 400, fmt.Sprintf("Error parsing JSON: %v", err))
+		return
+	}
+
+	apiKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		responseWithError(w, 403, fmt.Sprintf("Auth error: %v", err))
+		return
+	}
+	user, err := c.core.GetUser(r.Context(), apiKey)
+
+	posts, err := c.core.GetUserPosts(r.Context(), user.ID, payload.Limit)
 
 	if err != nil {
 		responseWithError(w, 400, fmt.Sprintf("could not get posts: %v", err))
 		return
 	}
 
-	respondWithJSON(w, 200, models.DatabasePostsToPosts(posts))
+	respondWithJSON(w, 200, posts)
 }

@@ -4,51 +4,51 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
-	"github.com/fredele20/rssagg/internal/database"
+	"github.com/fredele20/rssagg/internal/auth"
 	"github.com/fredele20/rssagg/models"
-	"github.com/google/uuid"
 )
 
-func (apiCfg *ApiConfig) CreateFeed(w http.ResponseWriter, r *http.Request, user database.User) {
-	type parameter struct {
-		Name string `json:"name"`
-		URL  string `json:"url"`
-	}
+func (c *Core) CreateFeed(w http.ResponseWriter, r *http.Request) {
+	// type parameter struct {
+	// 	Name string `json:"name"`
+	// 	URL  string `json:"url"`
+	// }
 
 	decoder := json.NewDecoder(r.Body)
 
-	params := parameter{}
-	err := decoder.Decode(&params)
+	apiKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		responseWithError(w, 403, fmt.Sprintf("Auth error: %v", err))
+		return
+	}
+	user, err := c.core.GetUser(r.Context(), apiKey)
+
+	var payload models.Feed
+	err = decoder.Decode(&payload)
 	if err != nil {
 		responseWithError(w, 400, fmt.Sprintf("Error parsing JSON: %v", err))
 		return
 	}
 
-	feed, err := apiCfg.DB.CreateFeed(r.Context(), database.CreateFeedParams{
-		ID:        uuid.New(),
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
-		Name:      params.Name,
-		Url:       params.URL,
-		UserID:    user.ID,
-	})
+	payload.UserID = user.ID
+
+	feed, err := c.core.CreateFeed(r.Context(), payload)
 
 	if err != nil {
 		responseWithError(w, 400, fmt.Sprintf("couldn't create a feed: %v", err))
 		return
 	}
 
-	respondWithJSON(w, 201, models.DatabaseFeedToFeed(feed))
+	respondWithJSON(w, 201, feed)
 }
 
-func (apiCfg *ApiConfig) GetFeeds(w http.ResponseWriter, r *http.Request) {
-	feeds, err := apiCfg.DB.GetFeeds(r.Context())
+func (c *Core) GetFeeds(w http.ResponseWriter, r *http.Request) {
+	feeds, err := c.core.GetFeeds(r.Context())
 	if err != nil {
 		responseWithError(w, 500, fmt.Sprintf("could not get feeds"))
 		return
 	}
 
-	respondWithJSON(w, 200, models.DatabaseFeedsToFeeds(feeds))
+	respondWithJSON(w, 200, feeds)
 }

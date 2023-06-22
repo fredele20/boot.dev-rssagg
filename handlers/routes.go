@@ -10,15 +10,15 @@ func RegisterRoutes(route *chi.Mux, core Core) {
 	route.Get("/users", core.GetUser)
 	// route.Get("/users", apiCfg.middlewareAuth(apiCfg.GetUser))
 
-	// route.Post("/feeds", apiCfg.middlewareAuth(apiCfg.CreateFeed))
-	// route.Get("/feeds", apiCfg.GetFeeds)
+	route.Post("/feeds", core.CreateFeed)
+	route.Get("/feeds", core.GetFeeds)
 
-	// route.Get("/posts", apiCfg.middlewareAuth(apiCfg.GetPostsForUser))
+	route.Get("/posts", core.GetPostsForUser)
 
 
-	// route.Post("/feed_follows", apiCfg.middlewareAuth(apiCfg.CreateFeedFollow))
-	// route.Get("/feed_follows", apiCfg.middlewareAuth(apiCfg.GetFeedFollows))
-	// route.Delete("/feed_follows/{feedFollowID}", apiCfg.middlewareAuth(apiCfg.DeleteFeedFollow))
+	route.Post("/feed_follows", core.CreateFeedFollow)
+	route.Get("/feed_follows", core.GetFeedFollows)
+	route.Delete("/feed_follows/{feedFollowID}", core.DeleteFeedFollow)
 }
 
 	
